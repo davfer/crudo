@@ -2,10 +2,10 @@ name: build
 
 on:
   push:
-    # run only against tags
+    branches:
+      - '*'
     tags:
       - '*'
-
 jobs:
   test:
     runs-on: ubuntu-latest
