@@ -81,10 +81,9 @@ import (
 
 	"github.com/davfer/crudo"
 )
-ºººº
 
 func main() {
-	ºººººº
+	
 }
 ```
 
