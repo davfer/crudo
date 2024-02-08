@@ -30,16 +30,16 @@ func (t *testMongerEntity) GetResourceId() (string, error) {
 	return t.Attr1, nil
 }
 
-func (t testMongerEntity) SetResourceId(s string) error {
+func (t *testMongerEntity) SetResourceId(s string) error {
 	t.Attr1 = s
 	return nil
 }
 
-func (t testMongerEntity) PreCreate() error {
+func (t *testMongerEntity) PreCreate() error {
 	return nil
 }
 
-func (t testMongerEntity) PreUpdate() error {
+func (t *testMongerEntity) PreUpdate() error {
 	return nil
 }
 

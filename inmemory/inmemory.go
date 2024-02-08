@@ -5,14 +5,20 @@ import (
 	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
 	"github.com/pkg/errors"
+	"sync"
 )
 
 type Repository[K entity.Entity] struct {
 	Collection []K
+	lock       *sync.Mutex
+	policy     Policy[K]
 }
 
 func NewInMemoryRepository[K entity.Entity](data []K) *Repository[K] {
-	return &Repository[K]{Collection: data}
+	return NewInMemoryRepositoryWithPolicy(data, nil)
+}
+func NewInMemoryRepositoryWithPolicy[K entity.Entity](data []K, policy Policy[K]) *Repository[K] {
+	return &Repository[K]{Collection: data, policy: policy, lock: &sync.Mutex{}}
 }
 
 func (r *Repository[K]) Start(ctx context.Context, onBootstrap func(ctx context.Context) error) error {
@@ -20,6 +26,9 @@ func (r *Repository[K]) Start(ctx context.Context, onBootstrap func(ctx context.
 }
 
 func (r *Repository[K]) Create(ctx context.Context, e K) (entity.Id, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	for _, i := range r.Collection {
 		if i.GetId() == e.GetId() {
 			return "", entity.ErrEntityAlreadyExists
@@ -31,24 +40,37 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (entity.Id, error) {
 		return "", errors.Wrap(err, "error pre creating entity")
 	}
 
-	r.Collection = append(r.Collection, e)
+	if r.policy != nil {
+		r.Collection, err = r.policy.ApplyCreate(ctx, e, r.Collection)
+		if err != nil {
+			return e.GetId(), err
+		}
+	} else { // Nil policy, just append
+		r.Collection = append(r.Collection, e)
+	}
 
 	return e.GetId(), nil
 }
 
-func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (K, error) {
-	var e K
+func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
 
 	for _, i := range r.Collection {
 		if i.GetId() == id {
-			return e, nil
+			e = i
+			return
 		}
 	}
 
-	return e, entity.ErrEntityNotFound
+	err = entity.ErrEntityNotFound
+	return
 }
 
 func (r *Repository[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	var result []K
 	for _, e := range r.Collection {
 		if c.IsSatisfiedBy(e) {
@@ -77,10 +99,23 @@ func (r *Repository[K]) ReadAll(ctx context.Context) ([]K, error) {
 }
 
 func (r *Repository[K]) Update(ctx context.Context, entity K) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	for i, e := range r.Collection {
+		if e.GetId() == entity.GetId() {
+			r.Collection[i] = entity
+			break
+		}
+	}
+
 	return nil
 }
 
 func (r *Repository[K]) Delete(ctx context.Context, entity K) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	for i, e := range r.Collection {
 		if e.GetId() == entity.GetId() {
 			r.Collection = append(r.Collection[:i], r.Collection[i+1:]...)
