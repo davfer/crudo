@@ -17,22 +17,34 @@ type Repository[K entity.Entity] struct {
 }
 
 func (r *Repository[K]) Start(ctx context.Context, onBootstrap func(ctx context.Context) error) error {
-	return nil
+	return onBootstrap(ctx)
 }
 
 func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
-	for _, i := range r.Collection {
-		if i.GetId() == e.GetId() {
-			return e, entity.ErrEntityAlreadyExists
-		}
+	if entity.Contains(r.Collection, e) {
+		return e, entity.ErrEntityAlreadyExists
 	}
 
 	err := e.PreCreate()
 	if err != nil {
 		return e, errors.Wrap(err, "error pre creating entity")
+	}
+
+	if r.idStrategy != nil {
+		id := r.idStrategy.Generate(e)
+
+		err = e.SetId(id)
+		if err != nil {
+			return e, errors.Wrap(err, "error setting generated entity id")
+		}
+	} else if e.GetId().IsEmpty() {
+		err = e.SetId(entity.NewIdFromString(uuid.New().String()))
+		if err != nil {
+			return e, errors.Wrap(err, "error setting entity id")
+		}
 	}
 
 	if r.policy != nil {
@@ -42,13 +54,6 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 		}
 	} else { // Nil policy, just append
 		r.Collection = append(r.Collection, e)
-	}
-
-	if e.GetId().IsEmpty() {
-		err = e.SetId(entity.NewIdFromString(uuid.New().String()))
-		if err != nil {
-			return e, errors.Wrap(err, "error setting entity id")
-		}
 	}
 
 	return e, nil
@@ -84,10 +89,7 @@ func (r *Repository[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, er
 }
 
 func (r *Repository[K]) MatchOne(ctx context.Context, c criteria.Criteria) (k K, err error) {
-	ks, err := r.Match(ctx, c)
-	if err != nil {
-		return k, err
-	}
+	ks, _ := r.Match(ctx, c)
 	if len(ks) == 0 {
 		return k, entity.ErrEntityNotFound
 	}

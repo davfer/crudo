@@ -49,6 +49,11 @@ func TestId_GetCompoundIds(t *testing.T) {
 				"j": "5f3e3e3e3e3e3e3e3e3e3e3e",
 			},
 		},
+		{
+			name: "Test not compound ids",
+			i:    "5f3e3e3e3e3e3e3e3e3e3e3e",
+			want: nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -135,20 +140,37 @@ func TestId_String(t *testing.T) {
 func TestId_ToMustObjectId(t *testing.T) {
 	objId, _ := primitive.ObjectIDFromHex("5f3e3e3e3e3e3e3e3e3e3e3e")
 	tests := []struct {
-		name string
-		i    Id
-		want primitive.ObjectID
+		name  string
+		i     Id
+		want  primitive.ObjectID
+		panic string
 	}{
 		{
 			name: "Test to must object id",
 			i:    "5f3e3e3e3e3e3e3e3e3e3e3e",
 			want: objId,
 		},
+		{
+			name:  "Test to must object id",
+			i:     "ppppp",
+			panic: "could not convert ppppp to ObjectId",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.i.ToMustObjectId(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ToMustObjectId() = %v, want %v", got, tt.want)
+			if tt.panic == "" {
+				if got := tt.i.ToMustObjectId(); !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("ToMustObjectId() = %v, want %v", got, tt.want)
+				}
+			} else {
+				defer func() {
+					if r := recover(); r != nil {
+						if r != tt.panic {
+							t.Errorf("ToMustObjectId() = %v, want %v", r, tt.panic)
+						}
+					}
+				}()
+				tt.i.ToMustObjectId()
 			}
 		})
 	}

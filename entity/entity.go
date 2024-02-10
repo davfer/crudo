@@ -89,10 +89,7 @@ func NewIdFromObjectId(id primitive.ObjectID) Id {
 }
 
 func NewIdFromObjectIds(ids map[string]Id) Id {
-	jsoned, err := json.Marshal(ids)
-	if err != nil {
-		return Id("")
-	}
+	jsoned, _ := json.Marshal(ids)
 
 	return Id(jsoned)
 }

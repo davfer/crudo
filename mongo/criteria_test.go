@@ -15,6 +15,7 @@ type testMongerEntity struct {
 	Id            string `bson:"_id,omitempty"`
 	Attr1         string `bson:"attr_1,omitempty"`
 	SomeNiceField string `bson:"another_col_name"`
+	NotBsoned     string
 }
 
 func (t *testMongerEntity) GetId() entity.Id {
@@ -133,6 +134,36 @@ func TestConvertToMongoCriteria(t *testing.T) {
 		{
 			name:    "Test unsupported criteria",
 			crit:    &testUnsupportedCriteria{},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Test attr criteria field not found",
+			crit:    criteria.Attr{Name: "Attr2", Value: 12, Comparison: criteria.ComparisonEq},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Test attr criteria field not bson",
+			crit:    criteria.Attr{Name: "NotBsoned", Value: 12, Comparison: criteria.ComparisonEq},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Test and error propagation",
+			crit:    criteria.And{Operands: []criteria.Criteria{&testUnsupportedCriteria{}}},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Test or error propagation",
+			crit:    criteria.Or{Operands: []criteria.Criteria{&testUnsupportedCriteria{}}},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "Test not error propagation",
+			crit:    criteria.Not{Operand: &testUnsupportedCriteria{}},
 			want:    nil,
 			wantErr: true,
 		},
