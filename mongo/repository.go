@@ -45,23 +45,30 @@ func (r *Repository[K]) Start(ctx context.Context, onBootstrap func(ctx context.
 
 	return nil
 }
-func (r *Repository[K]) Create(ctx context.Context, e K) (entity.Id, error) {
+func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 	r.logger.WithField("entity", e).Debug("creating entity")
 
 	err := e.PreCreate()
 	if err != nil {
 		r.logger.WithError(err).Error("error pre creating entity")
-		return "", errors.Wrap(err, "error pre creating entity")
+		return e, errors.Wrap(err, "error pre creating entity")
 	}
 
 	insertResult, err := r.Collection.InsertOne(ctx, e)
 	if err != nil {
 		r.logger.WithError(err).Error("error inserting entity")
-		return entity.NewIdFromObjectId(primitive.NilObjectID), err
+		return e, err
+	}
+
+	id := entity.NewIdFromObjectId(insertResult.InsertedID.(primitive.ObjectID))
+	err = e.SetId(id)
+	if err != nil {
+		r.logger.WithError(err).Error("error setting id")
+		return e, err
 	}
 
 	r.logger.WithField("id", insertResult.InsertedID).Debug("entity created")
-	return entity.NewIdFromObjectId(insertResult.InsertedID.(primitive.ObjectID)), nil
+	return e, nil
 }
 
 func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error) {

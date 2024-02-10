@@ -13,7 +13,6 @@ A simple CRUD (Create, Read, Update, Delete) library for simple management of da
 
 - Id value object is opinionated to provide simple operation of the library, it provides creation/updation hooks
   and get/set for the id. It also has a WIP of compound ids.
-- InMemory with safe slice implementation.
 - More tests coverage and examples.
 
 ## Installation

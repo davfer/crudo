@@ -39,6 +39,12 @@ func (t *testMemoEntity) PreUpdate() error {
 	return nil
 }
 
+type nilIdStrategy struct{}
+
+func (n nilIdStrategy) Generate(k *testMemoEntity) entity.Id {
+	return entity.Id("")
+}
+
 func TestRepository_Create(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
@@ -51,7 +57,7 @@ func TestRepository_Create(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Create no policy",
-			r:    NewInMemoryRepository[*testMemoEntity](nil),
+			r:    New[*testMemoEntity](nil, WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx:  context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
@@ -66,8 +72,12 @@ func TestRepository_Create(t *testing.T) {
 		},
 		{
 			name: "Test Create with MRU policy",
-			r:    NewInMemoryRepositoryWithPolicy[*testMemoEntity](nil, PolicyMru[*testMemoEntity]{Capacity: 2}),
-			ctx:  context.TODO(),
+			r: New[*testMemoEntity](
+				nil,
+				WithIdStrategy[*testMemoEntity](nilIdStrategy{}),
+				WithPolicy[*testMemoEntity](PolicyMru[*testMemoEntity]{Capacity: 2}),
+			),
+			ctx: context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 				{Id: "2", Attr1: "attr2", SomeNiceField: "some_nice_field"},
@@ -80,8 +90,12 @@ func TestRepository_Create(t *testing.T) {
 		},
 		{
 			name: "Test Create with LRU policy",
-			r:    NewInMemoryRepositoryWithPolicy[*testMemoEntity](nil, PolicyLru[*testMemoEntity]{Capacity: 2}),
-			ctx:  context.TODO(),
+			r: New[*testMemoEntity](
+				nil,
+				WithIdStrategy[*testMemoEntity](nilIdStrategy{}),
+				WithPolicy[*testMemoEntity](PolicyLru[*testMemoEntity]{Capacity: 2}),
+			),
+			ctx: context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 				{Id: "2", Attr1: "attr2", SomeNiceField: "some_nice_field"},

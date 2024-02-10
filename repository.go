@@ -9,7 +9,7 @@ import (
 type Repository[K entity.Entity] interface {
 	Start(ctx context.Context, onBootstrap func(context.Context) error) error
 
-	Create(context.Context, K) (entity.Id, error)
+	Create(context.Context, K) (K, error)
 	Read(context.Context, entity.Id) (K, error)
 	ReadAll(context.Context) ([]K, error)
 	Update(context.Context, K) error

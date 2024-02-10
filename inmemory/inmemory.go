@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"sync"
 )
@@ -12,44 +13,45 @@ type Repository[K entity.Entity] struct {
 	Collection []K
 	lock       *sync.Mutex
 	policy     Policy[K]
-}
-
-func NewInMemoryRepository[K entity.Entity](data []K) *Repository[K] {
-	return NewInMemoryRepositoryWithPolicy(data, nil)
-}
-func NewInMemoryRepositoryWithPolicy[K entity.Entity](data []K, policy Policy[K]) *Repository[K] {
-	return &Repository[K]{Collection: data, policy: policy, lock: &sync.Mutex{}}
+	idStrategy IdStrategy[K]
 }
 
 func (r *Repository[K]) Start(ctx context.Context, onBootstrap func(ctx context.Context) error) error {
 	return nil
 }
 
-func (r *Repository[K]) Create(ctx context.Context, e K) (entity.Id, error) {
+func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	for _, i := range r.Collection {
 		if i.GetId() == e.GetId() {
-			return "", entity.ErrEntityAlreadyExists
+			return e, entity.ErrEntityAlreadyExists
 		}
 	}
 
 	err := e.PreCreate()
 	if err != nil {
-		return "", errors.Wrap(err, "error pre creating entity")
+		return e, errors.Wrap(err, "error pre creating entity")
 	}
 
 	if r.policy != nil {
 		r.Collection, err = r.policy.ApplyCreate(ctx, e, r.Collection)
 		if err != nil {
-			return e.GetId(), err
+			return e, err
 		}
 	} else { // Nil policy, just append
 		r.Collection = append(r.Collection, e)
 	}
 
-	return e.GetId(), nil
+	if e.GetId().IsEmpty() {
+		err = e.SetId(entity.NewIdFromString(uuid.New().String()))
+		if err != nil {
+			return e, errors.Wrap(err, "error setting entity id")
+		}
+	}
+
+	return e, nil
 }
 
 func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error) {
