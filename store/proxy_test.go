@@ -3,9 +3,9 @@ package store
 import (
 	"context"
 	"github.com/davfer/crudo"
-	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/crudo/notifier"
+	"github.com/davfer/go-specification"
 	"reflect"
 	"testing"
 )
@@ -75,12 +75,12 @@ func (s *spyRepository[K]) Delete(ctx context.Context, e K) error {
 	return nil
 }
 
-func (s *spyRepository[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, error) {
+func (s *spyRepository[K]) Match(ctx context.Context, c specification.Criteria) ([]K, error) {
 	s.calls = append(s.calls, "Match")
 	return s.entities, nil
 }
 
-func (s *spyRepository[K]) MatchOne(ctx context.Context, c criteria.Criteria) (K, error) {
+func (s *spyRepository[K]) MatchOne(ctx context.Context, c specification.Criteria) (K, error) {
 	s.calls = append(s.calls, "MatchOne")
 	return s.entities[0], nil
 }
@@ -205,7 +205,7 @@ func TestProxyStore_Load(t *testing.T) {
 func TestProxyStore_Match(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		c   criteria.Criteria
+		c   specification.Criteria
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
@@ -234,7 +234,7 @@ func TestProxyStore_Match(t *testing.T) {
 func TestProxyStore_MatchOne(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		c   criteria.Criteria
+		c   specification.Criteria
 	}
 	type testCase[K entity.Entity] struct {
 		name    string

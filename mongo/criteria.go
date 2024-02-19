@@ -2,20 +2,20 @@ package mongo
 
 import (
 	"errors"
-	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
+	"github.com/davfer/go-specification"
 	"go.mongodb.org/mongo-driver/bson"
 	"reflect"
 	"strings"
 )
 
-var ComparisonConversion = map[criteria.Comparator]string{
-	criteria.ComparisonEq:  "$eq",
-	criteria.ComparisonGt:  "$gt",
-	criteria.ComparisonGte: "$gte",
-	criteria.ComparisonLt:  "$lt",
-	criteria.ComparisonLte: "$lte",
-	criteria.ComparisonNe:  "$ne",
+var ComparisonConversion = map[specification.Comparator]string{
+	specification.ComparisonEq:  "$eq",
+	specification.ComparisonGt:  "$gt",
+	specification.ComparisonGte: "$gte",
+	specification.ComparisonLt:  "$lt",
+	specification.ComparisonLte: "$lte",
+	specification.ComparisonNe:  "$ne",
 }
 
 type Criteria interface {
@@ -25,7 +25,7 @@ type Criteria interface {
 type Attr struct {
 	Name       string
 	Value      any
-	Comparison criteria.Comparator
+	Comparison specification.Comparator
 }
 
 func (a Attr) GetExpression() bson.M {
@@ -66,10 +66,10 @@ func (n MongoNot) GetExpression() bson.M {
 	return bson.M{"$not": n.Operand.GetExpression()}
 }
 
-func ConvertToMongoCriteria(c criteria.Criteria, subject entity.Entity) (Criteria, error) {
+func ConvertToMongoCriteria(c specification.Criteria, subject entity.Entity) (Criteria, error) {
 	switch c.(type) {
-	case criteria.Attr:
-		ca := c.(criteria.Attr)
+	case specification.Attr:
+		ca := c.(specification.Attr)
 
 		field, ok := reflect.TypeOf(subject).Elem().FieldByName(ca.Name)
 		if !ok {
@@ -85,9 +85,9 @@ func ConvertToMongoCriteria(c criteria.Criteria, subject entity.Entity) (Criteri
 		}
 
 		return Attr{Name: tag, Value: ca.Value, Comparison: ca.Comparison}, nil
-	case criteria.And:
+	case specification.And:
 		var ops []Criteria
-		for _, operand := range c.(criteria.And).Operands {
+		for _, operand := range c.(specification.And).Operands {
 			mc, err := ConvertToMongoCriteria(operand, subject)
 			if err != nil {
 				return nil, err
@@ -95,9 +95,9 @@ func ConvertToMongoCriteria(c criteria.Criteria, subject entity.Entity) (Criteri
 			ops = append(ops, mc)
 		}
 		return MongoAnd{Operands: ops}, nil
-	case criteria.Or:
+	case specification.Or:
 		var ops []Criteria
-		for _, operand := range c.(criteria.Or).Operands {
+		for _, operand := range c.(specification.Or).Operands {
 			mc, err := ConvertToMongoCriteria(operand, subject)
 			if err != nil {
 				return nil, err
@@ -105,8 +105,8 @@ func ConvertToMongoCriteria(c criteria.Criteria, subject entity.Entity) (Criteri
 			ops = append(ops, mc)
 		}
 		return MongoOr{Operands: ops}, nil
-	case criteria.Not:
-		mc, err := ConvertToMongoCriteria(c.(criteria.Not).Operand, subject)
+	case specification.Not:
+		mc, err := ConvertToMongoCriteria(c.(specification.Not).Operand, subject)
 		if err != nil {
 			return nil, err
 		}

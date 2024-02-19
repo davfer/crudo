@@ -2,8 +2,8 @@ package inmemory
 
 import (
 	"context"
-	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
+	"github.com/davfer/go-specification"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"sync"
@@ -74,7 +74,7 @@ func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error)
 	return
 }
 
-func (r *Repository[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, error) {
+func (r *Repository[K]) Match(ctx context.Context, c specification.Criteria) ([]K, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
@@ -88,7 +88,7 @@ func (r *Repository[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, er
 	return result, nil
 }
 
-func (r *Repository[K]) MatchOne(ctx context.Context, c criteria.Criteria) (k K, err error) {
+func (r *Repository[K]) MatchOne(ctx context.Context, c specification.Criteria) (k K, err error) {
 	ks, _ := r.Match(ctx, c)
 	if len(ks) == 0 {
 		return k, entity.ErrEntityNotFound

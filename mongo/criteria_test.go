@@ -1,8 +1,8 @@
 package mongo
 
 import (
-	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
+	"github.com/davfer/go-specification"
 	"go.mongodb.org/mongo-driver/bson"
 	"reflect"
 	"testing"
@@ -51,18 +51,18 @@ func (t *testUnsupportedCriteria) IsSatisfiedBy(c any) bool {
 func TestConvertToMongoCriteria(t *testing.T) {
 	tests := []struct {
 		name    string
-		crit    criteria.Criteria
+		crit    specification.Criteria
 		want    Criteria
 		wantErr bool
 	}{
 		{
 			name: "Test And criteria",
-			crit: criteria.And{
-				Operands: []criteria.Criteria{
-					criteria.Attr{
+			crit: specification.And{
+				Operands: []specification.Criteria{
+					specification.Attr{
 						Name:       "Attr1",
 						Value:      12,
-						Comparison: criteria.ComparisonEq,
+						Comparison: specification.ComparisonEq,
 					},
 				},
 			},
@@ -71,7 +71,7 @@ func TestConvertToMongoCriteria(t *testing.T) {
 					Attr{
 						Name:       "attr_1",
 						Value:      12,
-						Comparison: criteria.ComparisonEq,
+						Comparison: specification.ComparisonEq,
 					},
 				},
 			},
@@ -79,12 +79,12 @@ func TestConvertToMongoCriteria(t *testing.T) {
 		},
 		{
 			name: "Test Or criteria",
-			crit: criteria.Or{
-				Operands: []criteria.Criteria{
-					criteria.Attr{
+			crit: specification.Or{
+				Operands: []specification.Criteria{
+					specification.Attr{
 						Name:       "SomeNiceField",
 						Value:      12,
-						Comparison: criteria.ComparisonEq,
+						Comparison: specification.ComparisonEq,
 					},
 				},
 			},
@@ -93,7 +93,7 @@ func TestConvertToMongoCriteria(t *testing.T) {
 					Attr{
 						Name:       "another_col_name",
 						Value:      12,
-						Comparison: criteria.ComparisonEq,
+						Comparison: specification.ComparisonEq,
 					},
 				},
 			},
@@ -101,33 +101,33 @@ func TestConvertToMongoCriteria(t *testing.T) {
 		},
 		{
 			name: "Test Not criteria",
-			crit: criteria.Not{
-				Operand: criteria.Attr{
+			crit: specification.Not{
+				Operand: specification.Attr{
 					Name:       "SomeNiceField",
 					Value:      12,
-					Comparison: criteria.ComparisonEq,
+					Comparison: specification.ComparisonEq,
 				},
 			},
 			want: MongoNot{
 				Operand: Attr{
 					Name:       "another_col_name",
 					Value:      12,
-					Comparison: criteria.ComparisonEq,
+					Comparison: specification.ComparisonEq,
 				},
 			},
 			wantErr: false,
 		},
 		{
 			name: "Test attr criteria",
-			crit: criteria.Attr{
+			crit: specification.Attr{
 				Name:       "Attr1",
 				Value:      12,
-				Comparison: criteria.ComparisonEq,
+				Comparison: specification.ComparisonEq,
 			},
 			want: Attr{
 				Name:       "attr_1",
 				Value:      12,
-				Comparison: criteria.ComparisonEq,
+				Comparison: specification.ComparisonEq,
 			},
 			wantErr: false,
 		},
@@ -139,31 +139,31 @@ func TestConvertToMongoCriteria(t *testing.T) {
 		},
 		{
 			name:    "Test attr criteria field not found",
-			crit:    criteria.Attr{Name: "Attr2", Value: 12, Comparison: criteria.ComparisonEq},
+			crit:    specification.Attr{Name: "Attr2", Value: 12, Comparison: specification.ComparisonEq},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Test attr criteria field not bson",
-			crit:    criteria.Attr{Name: "NotBsoned", Value: 12, Comparison: criteria.ComparisonEq},
+			crit:    specification.Attr{Name: "NotBsoned", Value: 12, Comparison: specification.ComparisonEq},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Test and error propagation",
-			crit:    criteria.And{Operands: []criteria.Criteria{&testUnsupportedCriteria{}}},
+			crit:    specification.And{Operands: []specification.Criteria{&testUnsupportedCriteria{}}},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Test or error propagation",
-			crit:    criteria.Or{Operands: []criteria.Criteria{&testUnsupportedCriteria{}}},
+			crit:    specification.Or{Operands: []specification.Criteria{&testUnsupportedCriteria{}}},
 			want:    nil,
 			wantErr: true,
 		},
 		{
 			name:    "Test not error propagation",
-			crit:    criteria.Not{Operand: &testUnsupportedCriteria{}},
+			crit:    specification.Not{Operand: &testUnsupportedCriteria{}},
 			want:    nil,
 			wantErr: true,
 		},
@@ -194,7 +194,7 @@ func TestMongoAnd_GetExpression(t *testing.T) {
 				Attr{
 					Name:       "some_column",
 					Value:      12,
-					Comparison: criteria.ComparisonEq,
+					Comparison: specification.ComparisonEq,
 				},
 			},
 			want: bson.M{"$and": []bson.M{{"some_column": bson.M{"$eq": 12}}}},
@@ -205,12 +205,12 @@ func TestMongoAnd_GetExpression(t *testing.T) {
 				Attr{
 					Name:       "some_column",
 					Value:      12,
-					Comparison: criteria.ComparisonEq,
+					Comparison: specification.ComparisonEq,
 				},
 				Attr{
 					Name:       "some_column",
 					Value:      12,
-					Comparison: criteria.ComparisonEq,
+					Comparison: specification.ComparisonEq,
 				},
 			},
 			want: bson.M{"$and": []bson.M{{"some_column": bson.M{"$eq": 12}}, {"some_column": bson.M{"$eq": 12}}}},
@@ -233,49 +233,49 @@ func TestMongoAttr_GetExpression(t *testing.T) {
 		name       string
 		attr       string
 		value      any
-		comparison criteria.Comparator
+		comparison specification.Comparator
 		want       bson.M
 	}{
 		{
 			name:       "Test eq",
 			attr:       "some_column",
 			value:      12,
-			comparison: criteria.ComparisonEq,
+			comparison: specification.ComparisonEq,
 			want:       bson.M{"some_column": bson.M{"$eq": 12}},
 		},
 		{
 			name:       "Test gt",
 			attr:       "some_column",
 			value:      12,
-			comparison: criteria.ComparisonGt,
+			comparison: specification.ComparisonGt,
 			want:       bson.M{"some_column": bson.M{"$gt": 12}},
 		},
 		{
 			name:       "Test gte",
 			attr:       "some_column",
 			value:      12,
-			comparison: criteria.ComparisonGte,
+			comparison: specification.ComparisonGte,
 			want:       bson.M{"some_column": bson.M{"$gte": 12}},
 		},
 		{
 			name:       "Test lt",
 			attr:       "some_column",
 			value:      12,
-			comparison: criteria.ComparisonLt,
+			comparison: specification.ComparisonLt,
 			want:       bson.M{"some_column": bson.M{"$lt": 12}},
 		},
 		{
 			name:       "Test lte",
 			attr:       "some_column",
 			value:      12,
-			comparison: criteria.ComparisonLte,
+			comparison: specification.ComparisonLte,
 			want:       bson.M{"some_column": bson.M{"$lte": 12}},
 		},
 		{
 			name:       "Test ne",
 			attr:       "some_column",
 			value:      12,
-			comparison: criteria.ComparisonNe,
+			comparison: specification.ComparisonNe,
 			want:       bson.M{"some_column": bson.M{"$ne": 12}},
 		},
 	}
@@ -304,7 +304,7 @@ func TestMongoNot_GetExpression(t *testing.T) {
 			operand: Attr{
 				Name:       "some_column",
 				Value:      12,
-				Comparison: criteria.ComparisonEq,
+				Comparison: specification.ComparisonEq,
 			},
 			want: bson.M{"$not": bson.M{"some_column": bson.M{"$eq": 12}}},
 		},
@@ -333,7 +333,7 @@ func TestMongoOr_GetExpression(t *testing.T) {
 				Attr{
 					Name:       "some_column",
 					Value:      12,
-					Comparison: criteria.ComparisonEq,
+					Comparison: specification.ComparisonEq,
 				},
 			},
 			want: bson.M{"$or": []bson.M{{"some_column": bson.M{"$eq": 12}}}},
@@ -344,12 +344,12 @@ func TestMongoOr_GetExpression(t *testing.T) {
 				Attr{
 					Name:       "some_column",
 					Value:      12,
-					Comparison: criteria.ComparisonEq,
+					Comparison: specification.ComparisonEq,
 				},
 				Attr{
 					Name:       "another_column",
 					Value:      "howard",
-					Comparison: criteria.ComparisonNe,
+					Comparison: specification.ComparisonNe,
 				},
 			},
 			want: bson.M{"$or": []bson.M{{"some_column": bson.M{"$eq": 12}}, {"another_column": bson.M{"$ne": "howard"}}}},

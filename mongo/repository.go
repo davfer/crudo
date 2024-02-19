@@ -3,8 +3,8 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
+	"github.com/davfer/go-specification"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -87,7 +87,7 @@ func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error)
 	return e, nil
 }
 
-func (r *Repository[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, error) {
+func (r *Repository[K]) Match(ctx context.Context, c specification.Criteria) ([]K, error) {
 	var subject K
 	mc, err := ConvertToMongoCriteria(c, subject)
 	if err != nil {
@@ -114,7 +114,7 @@ func (r *Repository[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, er
 	return entities, nil
 }
 
-func (r *Repository[K]) MatchOne(ctx context.Context, c criteria.Criteria) (k K, err error) {
+func (r *Repository[K]) MatchOne(ctx context.Context, c specification.Criteria) (k K, err error) {
 	ks, err := r.Match(ctx, c)
 	if err != nil {
 		return k, err

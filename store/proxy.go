@@ -3,10 +3,10 @@ package store
 import (
 	"context"
 	"github.com/davfer/crudo"
-	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/crudo/inmemory"
 	"github.com/davfer/crudo/notifier"
+	"github.com/davfer/go-specification"
 	"github.com/pkg/errors"
 )
 
@@ -109,7 +109,7 @@ func (r *ProxyStore[K]) Read(ctx context.Context, id entity.Id) (e K, err error)
 	return
 }
 
-func (r *ProxyStore[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, error) {
+func (r *ProxyStore[K]) Match(ctx context.Context, c specification.Criteria) ([]K, error) {
 	if r.remoteRepository == nil {
 		return []K{}, errors.New("store not loaded")
 	}
@@ -117,7 +117,7 @@ func (r *ProxyStore[K]) Match(ctx context.Context, c criteria.Criteria) ([]K, er
 	return r.localRepository.Match(ctx, c)
 }
 
-func (r *ProxyStore[K]) MatchOne(ctx context.Context, c criteria.Criteria) (K, error) {
+func (r *ProxyStore[K]) MatchOne(ctx context.Context, c specification.Criteria) (K, error) {
 	if r.remoteRepository == nil {
 		return *new(K), errors.New("store not loaded")
 	}

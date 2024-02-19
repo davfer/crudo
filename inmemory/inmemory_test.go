@@ -3,8 +3,8 @@ package inmemory
 import (
 	"context"
 	"errors"
-	"github.com/davfer/crudo/criteria"
 	"github.com/davfer/crudo/entity"
+	"github.com/davfer/go-specification"
 	"reflect"
 	"testing"
 )
@@ -247,7 +247,7 @@ func TestRepository_Match(t *testing.T) {
 		name    string
 		r       Repository[K]
 		ctx     context.Context
-		c       criteria.Criteria
+		c       specification.Criteria
 		want    []K
 		wantErr bool
 	}
@@ -260,10 +260,10 @@ func TestRepository_Match(t *testing.T) {
 			},
 				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
-			c: criteria.Attr{
+			c: specification.Attr{
 				Name:       "Attr1",
 				Value:      "attr2",
-				Comparison: criteria.ComparisonEq,
+				Comparison: specification.ComparisonEq,
 			},
 			want: []*testMemoEntity{
 				{Id: "2", Attr1: "attr2", SomeNiceField: "some_nice_field"},
@@ -290,7 +290,7 @@ func TestRepository_MatchOne(t *testing.T) {
 		name    string
 		r       Repository[K]
 		ctx     context.Context
-		c       criteria.Criteria
+		c       specification.Criteria
 		wantK   K
 		wantErr bool
 	}
@@ -304,10 +304,10 @@ func TestRepository_MatchOne(t *testing.T) {
 			},
 				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
-			c: criteria.Attr{
+			c: specification.Attr{
 				Name:       "SomeNiceField",
 				Value:      "some_nice_field",
-				Comparison: criteria.ComparisonEq,
+				Comparison: specification.ComparisonEq,
 			},
 			wantK:   &testMemoEntity{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 			wantErr: false,
@@ -319,10 +319,10 @@ func TestRepository_MatchOne(t *testing.T) {
 			},
 				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
-			c: criteria.Attr{
+			c: specification.Attr{
 				Name:       "SomeNiceField",
 				Value:      "some_nice_field2",
-				Comparison: criteria.ComparisonEq,
+				Comparison: specification.ComparisonEq,
 			},
 			wantK:   nil,
 			wantErr: true,
