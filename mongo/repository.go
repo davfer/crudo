@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/go-specification"
+	"github.com/davfer/go-specification/mongo/repository"
+	mongoSpec "github.com/davfer/go-specification/mongo/resolver"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,8 +16,9 @@ import (
 )
 
 type Repository[K entity.Entity] struct {
-	Collection *mongo.Collection
-	logger     *logrus.Entry
+	criteriaRepo repository.CriteriaRepository[K]
+	Collection   *mongo.Collection
+	logger       *logrus.Entry
 }
 
 func NewMongoRepository[K entity.Entity](collection *mongo.Collection) *Repository[K] {
@@ -30,6 +33,10 @@ func NewMongoRepositoryWithOpts[K entity.Entity](collection *mongo.Collection, l
 	}
 
 	return &Repository[K]{
+		criteriaRepo: repository.CriteriaRepository[K]{
+			Collection: collection,
+			Converter:  mongoSpec.NewMongoResolver(),
+		},
 		Collection: collection,
 		logger:     logger.WithField("repository", collection.Name()),
 	}
@@ -88,43 +95,11 @@ func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error)
 }
 
 func (r *Repository[K]) Match(ctx context.Context, c specification.Criteria) ([]K, error) {
-	var subject K
-	mc, err := ConvertToMongoCriteria(c, subject)
-	if err != nil {
-		r.logger.WithError(err).Error("error converting criteria")
-		return nil, errors.Wrap(err, "error converting criteria")
-	}
-
-	r.logger.WithField("expression", mc.GetExpression()).Debug("matching entities")
-	var entities []K
-	cursor, err := r.Collection.Find(ctx, mc.GetExpression())
-	if err != nil {
-		r.logger.WithError(err).Error("error finding match")
-		return nil, errors.Wrap(err, "error finding match")
-	}
-	if err = cursor.All(ctx, &entities); err != nil {
-		r.logger.WithError(err).Error("error reading match")
-		return nil, errors.Wrap(err, "error reading match")
-	}
-
-	if len(entities) == 0 {
-		return []K{}, nil
-	}
-
-	return entities, nil
+	return r.criteriaRepo.Match(ctx, c)
 }
 
-func (r *Repository[K]) MatchOne(ctx context.Context, c specification.Criteria) (k K, err error) {
-	ks, err := r.Match(ctx, c)
-	if err != nil {
-		return k, err
-	}
-	if len(ks) == 0 {
-		return k, entity.ErrEntityNotFound
-	}
-
-	k = ks[0]
-	return
+func (r *Repository[K]) MatchOne(ctx context.Context, c specification.Criteria) (K, error) {
+	return r.criteriaRepo.MatchOne(ctx, c)
 }
 
 func (r *Repository[K]) ReadAll(ctx context.Context) ([]K, error) {
