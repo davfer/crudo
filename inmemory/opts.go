@@ -1,28 +1,20 @@
 package inmemory
 
 import (
+	"github.com/davfer/archit/patterns/opts"
 	"github.com/davfer/crudo/entity"
-	"sync"
 )
 
-type Opt[K entity.Entity] func(repository *Repository[K])
-
-func New[K entity.Entity](data []K, opts ...Opt[K]) *Repository[K] {
-	r := &Repository[K]{Collection: data, lock: &sync.Mutex{}}
-	for _, o := range opts {
-		o(r)
-	}
-	return r
-}
-
-func WithPolicy[K entity.Entity](p Policy[K]) Opt[K] {
-	return func(s *Repository[K]) {
+func WithPolicy[K entity.Entity](p Policy[K]) opts.Opt[Repository[K]] {
+	return func(s Repository[K]) Repository[K] {
 		s.policy = p
+		return s
 	}
 }
 
-func WithIdStrategy[K entity.Entity](i IdStrategy[K]) Opt[K] {
-	return func(s *Repository[K]) {
+func WithIdStrategy[K entity.Entity](i IdStrategy[K]) opts.Opt[Repository[K]] {
+	return func(s Repository[K]) Repository[K] {
 		s.idStrategy = i
+		return s
 	}
 }

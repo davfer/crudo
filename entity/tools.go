@@ -1,15 +1,15 @@
 package entity
 
-func Contains[K Entity](entities []K, e K) bool {
+import "github.com/davfer/archit/helpers/sli"
+
+func Contains[K Entity](entities []K, e K) (ok bool) {
 	if e.GetId().IsEmpty() {
-		return false
+		return
 	}
 
-	for _, i := range entities {
-		if !i.GetId().IsEmpty() && i.GetId().Equals(e.GetId()) {
-			return true
-		}
-	}
+	_, ok = sli.Find(entities, func(i K) bool {
+		return !i.GetId().IsEmpty() && i.GetId().Equals(e.GetId())
+	})
 
-	return false
+	return
 }

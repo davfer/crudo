@@ -177,7 +177,7 @@ func (r *ProxyStore[K]) Load(ctx context.Context, repo crudo.Repository[K]) erro
 		return errors.Wrap(err, "could not load Entities")
 	}
 
-	r.localRepository = inmemory.New(entities)
+	r.localRepository = inmemory.NewRepository(entities)
 	for _, d := range entities {
 		if r.Hydrate != nil {
 			d, err = r.Hydrate(ctx, d)

@@ -2,6 +2,7 @@ package inmemory
 
 import (
 	"context"
+	"github.com/davfer/archit/patterns/opts"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/go-specification"
 	"github.com/google/uuid"
@@ -16,6 +17,15 @@ type Repository[K entity.Entity] struct {
 	idStrategy IdStrategy[K]
 }
 
+func NewRepository[K entity.Entity](c []K, o ...opts.Opt[Repository[K]]) *Repository[K] {
+	r := opts.New[Repository[K]](o...)
+
+	r.Collection = c
+	r.lock = &sync.Mutex{}
+
+	return &r
+}
+
 func (r *Repository[K]) Start(ctx context.Context, onBootstrap func(ctx context.Context) error) error {
 	return onBootstrap(ctx)
 }
@@ -28,30 +38,34 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 		return e, entity.ErrEntityAlreadyExists
 	}
 
-	err := e.PreCreate()
-	if err != nil {
-		return e, errors.Wrap(err, "error pre creating entity")
+	if ee, ok := entity.Entity(e).(entity.EventfulEntity); ok {
+		err := ee.PreCreate()
+		if err != nil {
+			return e, errors.Wrap(err, "error pre creating entity")
+		}
 	}
 
 	if r.idStrategy != nil {
 		id := r.idStrategy.Generate(e)
 
-		err = e.SetId(id)
+		err := e.SetId(id)
 		if err != nil {
 			return e, errors.Wrap(err, "error setting generated entity id")
 		}
 	} else if e.GetId().IsEmpty() {
-		err = e.SetId(entity.NewIdFromString(uuid.New().String()))
+		err := e.SetId(entity.NewIdFromString(uuid.New().String()))
 		if err != nil {
 			return e, errors.Wrap(err, "error setting entity id")
 		}
 	}
 
 	if r.policy != nil {
-		r.Collection, err = r.policy.ApplyCreate(ctx, e, r.Collection)
+		c, err := r.policy.ApplyCreate(ctx, e, r.Collection)
 		if err != nil {
 			return e, err
 		}
+
+		r.Collection = c
 	} else { // Nil policy, just append
 		r.Collection = append(r.Collection, e)
 	}

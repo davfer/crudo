@@ -8,13 +8,19 @@ import (
 
 type Repository[K entity.Entity] interface {
 	Start(ctx context.Context, onBootstrap func(context.Context) error) error
+	QueryRepository[K]
+	WriteRepository[K]
+}
 
-	Create(context.Context, K) (K, error)
+type QueryRepository[K entity.Entity] interface {
 	Read(context.Context, entity.Id) (K, error)
 	ReadAll(context.Context) ([]K, error)
-	Update(context.Context, K) error
-	Delete(context.Context, K) error
-
 	Match(context.Context, specification.Criteria) ([]K, error)
 	MatchOne(context.Context, specification.Criteria) (K, error)
+}
+
+type WriteRepository[K entity.Entity] interface {
+	Create(context.Context, K) (K, error)
+	Update(context.Context, K) error
+	Delete(context.Context, K) error
 }

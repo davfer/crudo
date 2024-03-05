@@ -14,12 +14,15 @@ var ErrResourceIdNotEmpty = fmt.Errorf("resource id is not empty")
 var ErrResourceIdNotSupported = fmt.Errorf("resource id is not supported")
 
 type Entity interface {
-	GetId() Id
-	SetId(Id) error
-	GetResourceId() (string, error)
-	SetResourceId(string) error
-	PreCreate() error
-	PreUpdate() error
+	GetId() Id                      // GetId should return internal identifier Id of the entity
+	SetId(Id) error                 // SetId is called when the system is assigning an Id to the entity if applies
+	GetResourceId() (string, error) // GetResourceId is an opinionated way to identify publicly an entity (slug, name, id, etc)
+	SetResourceId(string) error     // SetResourceId @deprecated is called when the system is assigning a resource id to the entity if applies
+}
+
+type EventfulEntity interface {
+	PreCreate() error // PreCreate is called before the entity is created
+	PreUpdate() error // PreUpdate is called before the entity is updated
 }
 
 type Id string
