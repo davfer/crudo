@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/davfer/go-specification"
+	"github.com/go-logr/logr"
+
 	"github.com/davfer/crudo"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/crudo/inmemory"
 	"github.com/davfer/crudo/notifier"
-	"github.com/davfer/go-specification"
 )
 
 const (
@@ -36,12 +38,14 @@ type ProxyStore[K entity.Entity] struct {
 	RefreshPolicy    RefreshPolicy
 	notifier         *notifier.TopicCallbackNotifier[K]
 	Hydrate          HydrateFunc[K]
+	logger           logr.Logger
 }
 
 func NewProxyStore[K entity.Entity]() *ProxyStore[K] {
 	return &ProxyStore[K]{
 		RefreshPolicy: RefreshPolicyNone,
 		notifier:      notifier.NewTopicCallbackNotifier[K]([]string{Added, Updated, Deleted, Loaded, Unloaded}),
+		logger:        logr.Discard(),
 	}
 }
 
@@ -109,9 +113,10 @@ func (r *ProxyStore[K]) Read(ctx context.Context, id entity.ID) (e K, err error)
 		err = fmt.Errorf("could not read entity: %w", err)
 	} else if err == nil {
 		if _, err = r.localRepository.Create(ctx, e); err != nil {
-			return
+			r.logger.Error(err, "error creating local entity")
 		}
 		if err = r.notifier.Notify(ctx, Loaded, e); err != nil {
+			r.logger.Error(err, "error notifying entity load")
 			return
 		}
 	}
