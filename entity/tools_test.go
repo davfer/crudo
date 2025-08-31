@@ -1,6 +1,10 @@
-package entity
+package entity_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/davfer/crudo/entity"
+)
 
 type testToolEntity struct {
 	Id            string
@@ -8,20 +12,20 @@ type testToolEntity struct {
 	SomeNiceField string
 }
 
-func (t *testToolEntity) GetId() Id {
-	return Id(t.Id)
+func (t *testToolEntity) GetID() entity.ID {
+	return entity.ID(t.Id)
 }
 
-func (t *testToolEntity) SetId(id Id) error {
+func (t *testToolEntity) SetID(id entity.ID) error {
 	t.Id = string(id)
 	return nil
 }
 
-func (t *testToolEntity) GetResourceId() (string, error) {
+func (t *testToolEntity) GetResourceID() (string, error) {
 	return t.Attr1, nil
 }
 
-func (t *testToolEntity) SetResourceId(s string) error {
+func (t *testToolEntity) SetResourceID(s string) error {
 	t.Attr1 = s
 	return nil
 }
@@ -35,7 +39,7 @@ func (t *testToolEntity) PreUpdate() error {
 }
 
 func TestContainsId(t *testing.T) {
-	type testCase[K Entity] struct {
+	type testCase[K entity.Entity] struct {
 		name     string
 		entities []K
 		e        K
@@ -70,7 +74,7 @@ func TestContainsId(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := Contains(tt.entities, tt.e); got != tt.want {
+			if got := entity.Contains(tt.entities, tt.e); got != tt.want {
 				t.Errorf("Contains() = %v, want %v", got, tt.want)
 			}
 		})

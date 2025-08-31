@@ -1,4 +1,4 @@
-package inmemory
+package inmemory_test
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/davfer/crudo/entity"
+	"github.com/davfer/crudo/inmemory"
 	"github.com/davfer/go-specification"
 )
 
@@ -19,11 +20,11 @@ type testMemoEntity struct {
 	SetIdErr      bool
 }
 
-func (t *testMemoEntity) GetId() entity.Id {
-	return entity.Id(t.Id)
+func (t *testMemoEntity) GetID() entity.ID {
+	return entity.ID(t.Id)
 }
 
-func (t *testMemoEntity) SetId(id entity.Id) error {
+func (t *testMemoEntity) SetID(id entity.ID) error {
 	if t.SetIdErr {
 		return fmt.Errorf("error setting id")
 	}
@@ -31,11 +32,11 @@ func (t *testMemoEntity) SetId(id entity.Id) error {
 	return nil
 }
 
-func (t *testMemoEntity) GetResourceId() (string, error) {
+func (t *testMemoEntity) GetResourceID() (string, error) {
 	return t.Attr1, nil
 }
 
-func (t *testMemoEntity) SetResourceId(s string) error {
+func (t *testMemoEntity) SetResourceID(s string) error {
 	t.Attr1 = s
 	return nil
 }
@@ -53,8 +54,8 @@ func (t *testMemoEntity) PreUpdate() error {
 
 type nilIdStrategy struct{}
 
-func (n nilIdStrategy) Generate(k *testMemoEntity) entity.Id {
-	return entity.Id("")
+func (n nilIdStrategy) Generate(k *testMemoEntity) entity.ID {
+	return entity.ID("")
 }
 
 type nilPolicy struct{}
@@ -70,7 +71,7 @@ func (n nilPolicy) ApplyCreate(ctx context.Context, e *testMemoEntity, collectio
 func TestRepository_Create(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       *Repository[K]
+		r       *inmemory.Repository[K]
 		ctx     context.Context
 		calls   []K
 		expect  []K
@@ -79,7 +80,7 @@ func TestRepository_Create(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Create no policy",
-			r:    NewRepository(nil, WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+			r:    inmemory.NewRepository(nil, inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx:  context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "", Attr1: "attr1", SomeNiceField: "some_nice_field"},
@@ -95,10 +96,10 @@ func TestRepository_Create(t *testing.T) {
 		},
 		{
 			name: "Test Create with MRU policy",
-			r: NewRepository(
+			r: inmemory.NewRepository(
 				nil,
-				WithIdStrategy[*testMemoEntity](nilIdStrategy{}),
-				WithPolicy[*testMemoEntity](PolicyMru[*testMemoEntity]{Capacity: 2}),
+				inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{}),
+				inmemory.WithPolicy[*testMemoEntity](inmemory.PolicyMRU[*testMemoEntity]{Capacity: 2}),
 			),
 			ctx: context.TODO(),
 			calls: []*testMemoEntity{
@@ -114,10 +115,10 @@ func TestRepository_Create(t *testing.T) {
 		},
 		{
 			name: "Test Create with LRU policy",
-			r: NewRepository(
+			r: inmemory.NewRepository(
 				nil,
-				WithIdStrategy[*testMemoEntity](nilIdStrategy{}),
-				WithPolicy[*testMemoEntity](PolicyLru[*testMemoEntity]{Capacity: 2}),
+				inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{}),
+				inmemory.WithPolicy[*testMemoEntity](inmemory.PolicyLRU[*testMemoEntity]{Capacity: 2}),
 			),
 			ctx: context.TODO(),
 			calls: []*testMemoEntity{
@@ -133,7 +134,7 @@ func TestRepository_Create(t *testing.T) {
 		},
 		{
 			name: "Test Create already exists",
-			r:    NewRepository([]*testMemoEntity{{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"}}),
+			r:    inmemory.NewRepository([]*testMemoEntity{{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"}}),
 			ctx:  context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
@@ -145,7 +146,7 @@ func TestRepository_Create(t *testing.T) {
 		},
 		{
 			name: "Test Create with PreCreate error",
-			r:    NewRepository([]*testMemoEntity{}),
+			r:    inmemory.NewRepository([]*testMemoEntity{}),
 			ctx:  context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "", Attr1: "attr1", PreCreateErr: true},
@@ -155,7 +156,7 @@ func TestRepository_Create(t *testing.T) {
 		},
 		{
 			name: "Test Create with Policy error",
-			r:    NewRepository([]*testMemoEntity{}, WithIdStrategy[*testMemoEntity](nilIdStrategy{}), WithPolicy[*testMemoEntity](nilPolicy{})),
+			r:    inmemory.NewRepository([]*testMemoEntity{}, inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{}), inmemory.WithPolicy[*testMemoEntity](nilPolicy{})),
 			ctx:  context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "", Attr1: "attr1", PolicyErr: true},
@@ -164,8 +165,8 @@ func TestRepository_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Test Create with SetId error",
-			r:    NewRepository([]*testMemoEntity{}, WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+			name: "Test Create with SetID error",
+			r:    inmemory.NewRepository([]*testMemoEntity{}, inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx:  context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "", Attr1: "attr1", SetIdErr: true},
@@ -174,8 +175,8 @@ func TestRepository_Create(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Test Create with IdStrategy null and SetId error",
-			r:    NewRepository([]*testMemoEntity{}),
+			name: "Test Create with IdStrategy null and SetID error",
+			r:    inmemory.NewRepository([]*testMemoEntity{}),
 			ctx:  context.TODO(),
 			calls: []*testMemoEntity{
 				{Id: "", Attr1: "attr1", SetIdErr: true},
@@ -204,9 +205,9 @@ func TestRepository_Create(t *testing.T) {
 func TestRepository_Read(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       Repository[K]
+		r       inmemory.Repository[K]
 		ctx     context.Context
-		id      entity.Id
+		id      entity.ID
 		wantE   K
 		wantErr bool
 	}
@@ -214,17 +215,17 @@ func TestRepository_Read(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name:    "Test Read",
-			r:       *NewRepository([]*testMemoEntity{{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"}}, WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+			r:       *inmemory.NewRepository([]*testMemoEntity{{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"}}, inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx:     context.TODO(),
-			id:      entity.Id("1"),
+			id:      entity.ID("1"),
 			wantE:   &testMemoEntity{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 			wantErr: false,
 		},
 		{
 			name:    "Test Read not found",
-			r:       *NewRepository([]*testMemoEntity{{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"}}, WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+			r:       *inmemory.NewRepository([]*testMemoEntity{{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"}}, inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx:     context.TODO(),
-			id:      entity.Id("2"),
+			id:      entity.ID("2"),
 			wantE:   nil,
 			wantErr: true,
 		},
@@ -246,7 +247,7 @@ func TestRepository_Read(t *testing.T) {
 func TestRepository_Match(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       Repository[K]
+		r       inmemory.Repository[K]
 		ctx     context.Context
 		c       specification.Criteria
 		want    []K
@@ -255,11 +256,11 @@ func TestRepository_Match(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Match",
-			r: *NewRepository([]*testMemoEntity{
+			r: *inmemory.NewRepository([]*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 				{Id: "2", Attr1: "attr2", SomeNiceField: "some_nice_field"},
 			},
-				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+				inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
 			c: specification.Attr{
 				Name:       "Attr1",
@@ -289,7 +290,7 @@ func TestRepository_Match(t *testing.T) {
 func TestRepository_MatchOne(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       Repository[K]
+		r       inmemory.Repository[K]
 		ctx     context.Context
 		c       specification.Criteria
 		wantK   K
@@ -298,12 +299,12 @@ func TestRepository_MatchOne(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Match One",
-			r: *NewRepository([]*testMemoEntity{
+			r: *inmemory.NewRepository([]*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 				{Id: "2", Attr1: "attr2", SomeNiceField: "some_nice_field"},
 				{Id: "3", Attr1: "attr3", SomeNiceField: "some_nice_field"},
 			},
-				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+				inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
 			c: specification.Attr{
 				Name:       "SomeNiceField",
@@ -315,10 +316,10 @@ func TestRepository_MatchOne(t *testing.T) {
 		},
 		{
 			name: "Test Match One not found",
-			r: *NewRepository([]*testMemoEntity{
+			r: *inmemory.NewRepository([]*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 			},
-				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+				inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
 			c: specification.Attr{
 				Name:       "SomeNiceField",
@@ -346,7 +347,7 @@ func TestRepository_MatchOne(t *testing.T) {
 func TestRepository_ReadAll(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       Repository[K]
+		r       inmemory.Repository[K]
 		ctx     context.Context
 		want    []K
 		wantErr bool
@@ -354,11 +355,11 @@ func TestRepository_ReadAll(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Read All",
-			r: *NewRepository([]*testMemoEntity{
+			r: *inmemory.NewRepository([]*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 				{Id: "2", Attr1: "attr2", SomeNiceField: "some_nice_field"},
 			},
-				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+				inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
 			want: []*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
@@ -384,7 +385,7 @@ func TestRepository_ReadAll(t *testing.T) {
 func TestRepository_Update(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       Repository[K]
+		r       inmemory.Repository[K]
 		ctx     context.Context
 		entity  K
 		wantErr bool
@@ -393,9 +394,9 @@ func TestRepository_Update(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Update",
-			r: *NewRepository([]*testMemoEntity{
+			r: *inmemory.NewRepository([]*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
-			}, WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+			}, inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			read:    &testMemoEntity{Id: "1", Attr1: "attr2", SomeNiceField: "some_nice_field2"},
 			ctx:     context.TODO(),
 			entity:  &testMemoEntity{Id: "1", Attr1: "attr2", SomeNiceField: "some_nice_field2"},
@@ -408,7 +409,7 @@ func TestRepository_Update(t *testing.T) {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got, _ := tt.r.Read(tt.ctx, tt.entity.GetId()); !reflect.DeepEqual(got, tt.read) {
+			if got, _ := tt.r.Read(tt.ctx, tt.entity.GetID()); !reflect.DeepEqual(got, tt.read) {
 				t.Errorf("Read() got = %v, want %v", got, tt.read)
 			}
 		})
@@ -418,7 +419,7 @@ func TestRepository_Update(t *testing.T) {
 func TestRepository_Delete(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       Repository[K]
+		r       inmemory.Repository[K]
 		ctx     context.Context
 		entity  K
 		read    K
@@ -427,9 +428,9 @@ func TestRepository_Delete(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Delete",
-			r: *NewRepository([]*testMemoEntity{
+			r: *inmemory.NewRepository([]*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
-			}, WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+			}, inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx:     context.TODO(),
 			entity:  &testMemoEntity{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 			wantErr: false,
@@ -442,7 +443,7 @@ func TestRepository_Delete(t *testing.T) {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if got, _ := tt.r.Read(tt.ctx, tt.entity.GetId()); !reflect.DeepEqual(got, tt.read) {
+			if got, _ := tt.r.Read(tt.ctx, tt.entity.GetID()); !reflect.DeepEqual(got, tt.read) {
 				t.Errorf("Read() got = %v, want %v", got, tt.read)
 			}
 		})
@@ -452,7 +453,7 @@ func TestRepository_Delete(t *testing.T) {
 func TestRepository_Start(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name        string
-		r           Repository[K]
+		r           inmemory.Repository[K]
 		ctx         context.Context
 		onBootstrap func(ctx context.Context) error
 		wantErr     error
@@ -460,10 +461,10 @@ func TestRepository_Start(t *testing.T) {
 	tests := []testCase[*testMemoEntity]{
 		{
 			name: "Test Start",
-			r: *NewRepository([]*testMemoEntity{
+			r: *inmemory.NewRepository([]*testMemoEntity{
 				{Id: "1", Attr1: "attr1", SomeNiceField: "some_nice_field"},
 			},
-				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
+				inmemory.WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
 			onBootstrap: func(ctx context.Context) error {
 				return fmt.Errorf("error1234")

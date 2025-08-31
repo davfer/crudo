@@ -66,7 +66,7 @@ func (r *ProxyStore[K]) Create(ctx context.Context, e K) (K, error) {
 		return e, fmt.Errorf("store not loaded")
 	}
 
-	if !e.GetId().IsEmpty() {
+	if !e.GetID().IsEmpty() {
 		return e, fmt.Errorf("entity already with id")
 	}
 
@@ -91,7 +91,7 @@ func (r *ProxyStore[K]) Create(ctx context.Context, e K) (K, error) {
 	return e, nil
 }
 
-func (r *ProxyStore[K]) Read(ctx context.Context, id entity.Id) (e K, err error) {
+func (r *ProxyStore[K]) Read(ctx context.Context, id entity.ID) (e K, err error) {
 	if r.remoteRepository == nil {
 		return e, fmt.Errorf("store not loaded")
 	}
@@ -108,7 +108,9 @@ func (r *ProxyStore[K]) Read(ctx context.Context, id entity.Id) (e K, err error)
 	if err != nil && !errors.Is(err, entity.ErrEntityNotFound) {
 		err = fmt.Errorf("could not read entity: %w", err)
 	} else if err == nil {
-		r.localRepository.Create(ctx, e)
+		if _, err = r.localRepository.Create(ctx, e); err != nil {
+			return
+		}
 		if err = r.notifier.Notify(ctx, Loaded, e); err != nil {
 			return
 		}
@@ -197,8 +199,9 @@ func (r *ProxyStore[K]) Load(ctx context.Context, repo crudo.Repository[K]) erro
 				return fmt.Errorf("could not hydrate entity: %w", err)
 			}
 		}
-
-		r.notifier.Notify(ctx, Loaded, d)
+		if err = r.notifier.Notify(ctx, Loaded, d); err != nil {
+			return err
+		}
 	}
 
 	return nil

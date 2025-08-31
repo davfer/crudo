@@ -13,7 +13,7 @@ type Repository[K entity.Entity] interface {
 }
 
 type QueryRepository[K entity.Entity] interface {
-	Read(context.Context, entity.Id) (K, error)
+	Read(context.Context, entity.ID) (K, error)
 	ReadAll(context.Context) ([]K, error)
 	Match(context.Context, specification.Criteria) ([]K, error)
 	MatchOne(context.Context, specification.Criteria) (K, error)

@@ -1,4 +1,4 @@
-package store
+package store_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"github.com/davfer/crudo"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/crudo/notifier"
+	"github.com/davfer/crudo/store"
 	"github.com/davfer/go-specification"
 )
 
@@ -17,20 +18,20 @@ type testProxyEntity struct {
 	SomeNiceField string
 }
 
-func (t *testProxyEntity) GetId() entity.Id {
-	return entity.Id(t.Id)
+func (t *testProxyEntity) GetID() entity.ID {
+	return entity.ID(t.Id)
 }
 
-func (t *testProxyEntity) SetId(id entity.Id) error {
+func (t *testProxyEntity) SetID(id entity.ID) error {
 	t.Id = string(id)
 	return nil
 }
 
-func (t *testProxyEntity) GetResourceId() (string, error) {
+func (t *testProxyEntity) GetResourceID() (string, error) {
 	return t.Attr1, nil
 }
 
-func (t *testProxyEntity) SetResourceId(s string) error {
+func (t *testProxyEntity) SetResourceID(s string) error {
 	t.Attr1 = s
 	return nil
 }
@@ -55,7 +56,7 @@ func (s *spyRepository[K]) Start(ctx context.Context, onBootstrap func(context.C
 }
 
 func (s *spyRepository[K]) Create(_ context.Context, e K) (K, error) {
-	if err := e.SetId("attr1"); err != nil {
+	if err := e.SetID("attr1"); err != nil {
 		return e, err
 	}
 	s.calls = append(s.calls, "Create")
@@ -63,7 +64,7 @@ func (s *spyRepository[K]) Create(_ context.Context, e K) (K, error) {
 	return e, nil
 }
 
-func (s *spyRepository[K]) Read(ctx context.Context, id entity.Id) (K, error) {
+func (s *spyRepository[K]) Read(ctx context.Context, id entity.ID) (K, error) {
 	s.calls = append(s.calls, "Read")
 	return s.entities[0], nil
 }
@@ -96,7 +97,7 @@ func (s *spyRepository[K]) ReadAll(ctx context.Context) ([]K, error) {
 func TestProxyStore_Create(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		store   *ProxyStore[K]
+		store   *store.ProxyStore[K]
 		ctx     context.Context
 		item    K
 		want    K
@@ -105,7 +106,7 @@ func TestProxyStore_Create(t *testing.T) {
 	tests := []testCase[*testProxyEntity]{
 		{
 			name:    "Test Create",
-			store:   NewProxyStore[*testProxyEntity](),
+			store:   store.NewProxyStore[*testProxyEntity](),
 			ctx:     context.TODO(),
 			item:    &testProxyEntity{Attr1: "attr1", SomeNiceField: "someNiceField"},
 			want:    &testProxyEntity{Id: "attr1", Attr1: "attr1", SomeNiceField: "someNiceField"},
@@ -147,7 +148,7 @@ func TestProxyStore_Create(t *testing.T) {
 func TestProxyStore_Delete(t *testing.T) {
 	type testCase[K entity.Entity] struct {
 		name    string
-		store   *ProxyStore[K]
+		store   *store.ProxyStore[K]
 		ctx     context.Context
 		item    K
 		want    K
@@ -156,7 +157,7 @@ func TestProxyStore_Delete(t *testing.T) {
 	tests := []testCase[*testProxyEntity]{
 		{
 			name:    "Test Delete",
-			store:   NewProxyStore[*testProxyEntity](),
+			store:   store.NewProxyStore[*testProxyEntity](),
 			ctx:     context.TODO(),
 			item:    &testProxyEntity{Attr1: "attr1", SomeNiceField: "someNiceField"},
 			want:    &testProxyEntity{Id: "attr1", Attr1: "attr1", SomeNiceField: "someNiceField"},
@@ -197,7 +198,7 @@ func TestProxyStore_Load(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args[K]
 		wantErr bool
 	}
@@ -220,7 +221,7 @@ func TestProxyStore_Match(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args
 		want    []K
 		wantErr bool
@@ -249,7 +250,7 @@ func TestProxyStore_MatchOne(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args
 		wantK   K
 		wantErr bool
@@ -278,7 +279,7 @@ func TestProxyStore_On(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args[K]
 		wantErr bool
 	}
@@ -296,11 +297,11 @@ func TestProxyStore_On(t *testing.T) {
 
 func TestProxyStore_OnHydrate(t *testing.T) {
 	type args[K entity.Entity] struct {
-		onHydrate HydrateFunc[K]
+		onHydrate store.HydrateFunc[K]
 	}
 	type testCase[K entity.Entity] struct {
 		name string
-		r    ProxyStore[K]
+		r    store.ProxyStore[K]
 		args args[K]
 	}
 	tests := []testCase[*testProxyEntity]{
@@ -316,11 +317,11 @@ func TestProxyStore_OnHydrate(t *testing.T) {
 func TestProxyStore_Read(t *testing.T) {
 	type args struct {
 		ctx context.Context
-		id  entity.Id
+		id  entity.ID
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args
 		wantE   K
 		wantErr bool
@@ -348,7 +349,7 @@ func TestProxyStore_ReadAll(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args
 		want    []K
 		wantErr bool
@@ -376,7 +377,7 @@ func TestProxyStore_Refresh(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args
 		wantErr bool
 	}
@@ -399,7 +400,7 @@ func TestProxyStore_Start(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args
 		wantErr bool
 	}
@@ -422,7 +423,7 @@ func TestProxyStore_Update(t *testing.T) {
 	}
 	type testCase[K entity.Entity] struct {
 		name    string
-		r       ProxyStore[K]
+		r       store.ProxyStore[K]
 		args    args[K]
 		wantErr bool
 	}

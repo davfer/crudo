@@ -6,11 +6,11 @@ import (
 )
 
 type IdStrategy[K entity.Entity] interface {
-	Generate(k K) entity.Id
+	Generate(k K) entity.ID
 }
 
 type UuidIdStrategy[K entity.Entity] struct{}
 
-func (d UuidIdStrategy[K]) Generate(k K) entity.Id {
-	return entity.NewIdFromString(uuid.New().String())
+func (d UuidIdStrategy[K]) Generate(k K) entity.ID {
+	return entity.NewIDFromString(uuid.New().String())
 }
