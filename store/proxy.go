@@ -147,7 +147,7 @@ func (r *ProxyStore[K]) Update(ctx context.Context, entity K) error {
 	}
 
 	if err := r.remoteRepository.Update(ctx, entity); err != nil {
-		return fmt.Errorf("could not update entity remotelly: %w", err)
+		return fmt.Errorf("could not update entity remotely: %w", err)
 	}
 	if err := r.localRepository.Update(ctx, entity); err != nil {
 		return fmt.Errorf("could not update entity locally: %w", err)
@@ -165,7 +165,7 @@ func (r *ProxyStore[K]) Delete(ctx context.Context, entity K) error {
 	}
 
 	if err := r.remoteRepository.Delete(ctx, entity); err != nil {
-		return fmt.Errorf("could not delete entity remotelly: %w", err)
+		return fmt.Errorf("could not delete entity remotely: %w", err)
 	}
 	if err := r.localRepository.Delete(ctx, entity); err != nil {
 		return fmt.Errorf("could not delete entity locally: %w", err)

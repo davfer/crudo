@@ -54,7 +54,7 @@ func (s *spyRepository[K]) Start(ctx context.Context, onBootstrap func(context.C
 	return nil
 }
 
-func (s *spyRepository[K]) Create(ctx context.Context, e K) (K, error) {
+func (s *spyRepository[K]) Create(_ context.Context, e K) (K, error) {
 	if err := e.SetId("attr1"); err != nil {
 		return e, err
 	}
