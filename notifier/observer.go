@@ -2,7 +2,7 @@ package notifier
 
 import (
 	"context"
-	"github.com/pkg/errors"
+	"fmt"
 )
 
 type Observer[K any] interface {
@@ -45,7 +45,7 @@ func (n *Notifier[K]) Notify(ctx context.Context, event K) error {
 	for _, d := range n.observers {
 		err = d.Handle(ctx, event)
 		if err != nil {
-			err = errors.Wrap(err, "failed to notify observer")
+			err = fmt.Errorf("failed to notify observer: %w", err)
 		}
 	}
 

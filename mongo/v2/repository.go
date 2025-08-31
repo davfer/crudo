@@ -6,14 +6,15 @@ import (
 	"fmt"
 
 	"github.com/davfer/archit/patterns/opts"
-	"github.com/davfer/crudo/entity"
 	"github.com/davfer/go-specification"
-	"github.com/davfer/go-specification/mongo/repository"
-	mongoSpec "github.com/davfer/go-specification/mongo/resolver"
+	"github.com/davfer/go-specification/mongo/v2/repository"
+	mongoSpec "github.com/davfer/go-specification/mongo/v2/resolver"
 	"github.com/go-logr/logr"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+
+	"github.com/davfer/crudo/entity"
 )
 
 type Repository[K entity.Entity] struct {

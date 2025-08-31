@@ -2,11 +2,12 @@ package inmemory
 
 import (
 	"context"
-	"errors"
-	"github.com/davfer/crudo/entity"
-	"github.com/davfer/go-specification"
+	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/davfer/crudo/entity"
+	"github.com/davfer/go-specification"
 )
 
 type testMemoEntity struct {
@@ -24,7 +25,7 @@ func (t *testMemoEntity) GetId() entity.Id {
 
 func (t *testMemoEntity) SetId(id entity.Id) error {
 	if t.SetIdErr {
-		return errors.New("error setting id")
+		return fmt.Errorf("error setting id")
 	}
 	t.Id = string(id)
 	return nil
@@ -465,9 +466,9 @@ func TestRepository_Start(t *testing.T) {
 				WithIdStrategy[*testMemoEntity](nilIdStrategy{})),
 			ctx: context.TODO(),
 			onBootstrap: func(ctx context.Context) error {
-				return errors.New("error1234")
+				return fmt.Errorf("error1234")
 			},
-			wantErr: errors.New("error1234"),
+			wantErr: fmt.Errorf("error1234"),
 		},
 	}
 	for _, tt := range tests {
