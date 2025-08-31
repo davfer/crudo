@@ -3,12 +3,12 @@ package entity
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var ErrEntityNotFound = errors.New("entity not found")
-var ErrEntityAlreadyExists = errors.New("entity already exists")
+var ErrEntityNotFound = fmt.Errorf("entity not found")
+var ErrEntityAlreadyExists = fmt.Errorf("entity already exists")
 var ErrIdNotEmpty = fmt.Errorf("id is not empty")
 var ErrResourceIdNotEmpty = fmt.Errorf("resource id is not empty")
 var ErrResourceIdNotSupported = fmt.Errorf("resource id is not supported")

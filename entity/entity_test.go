@@ -1,9 +1,10 @@
 package entity
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"reflect"
 	"testing"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestId_Equals(t *testing.T) {

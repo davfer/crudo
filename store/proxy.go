@@ -2,12 +2,14 @@ package store
 
 import (
 	"context"
+	"errors"
+	"fmt"
+
 	"github.com/davfer/crudo"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/crudo/inmemory"
 	"github.com/davfer/crudo/notifier"
 	"github.com/davfer/go-specification"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -53,7 +55,7 @@ func (r *ProxyStore[K]) OnHydrate(onHydrate HydrateFunc[K]) {
 
 func (r *ProxyStore[K]) Start(ctx context.Context, onBootstrap func(ctx context.Context) error) error {
 	if r.remoteRepository == nil {
-		return errors.New("store not loaded")
+		return fmt.Errorf("store not loaded")
 	}
 
 	return r.remoteRepository.Start(ctx, onBootstrap)
@@ -61,38 +63,42 @@ func (r *ProxyStore[K]) Start(ctx context.Context, onBootstrap func(ctx context.
 
 func (r *ProxyStore[K]) Create(ctx context.Context, e K) (K, error) {
 	if r.remoteRepository == nil {
-		return e, errors.New("store not loaded")
+		return e, fmt.Errorf("store not loaded")
 	}
 
 	if !e.GetId().IsEmpty() {
-		return e, errors.New("entity already with id")
+		return e, fmt.Errorf("entity already with id")
 	}
 
 	e, err := r.remoteRepository.Create(ctx, e)
 	if err != nil {
-		return e, errors.Wrap(err, "could not insert entity")
+		return e, fmt.Errorf("could not insert entity: %w", err)
 	}
-
+	// hydrate persisted entity
 	if r.Hydrate != nil {
 		e, err = r.Hydrate(ctx, e)
 		if err != nil {
-			return e, errors.Wrap(err, "could not hydrate entity")
+			return e, fmt.Errorf("could not hydrate entity: %w", err)
 		}
 	}
-	r.localRepository.Create(ctx, e)
-	r.notifier.Notify(ctx, Added, e)
+	if _, err = r.localRepository.Create(ctx, e); err != nil {
+		return e, fmt.Errorf("could not insert entity locally: %w", err)
+	}
+	if err = r.notifier.Notify(ctx, Added, e); err != nil {
+		return e, fmt.Errorf("could not notify entity add: %w", err)
+	}
 
 	return e, nil
 }
 
 func (r *ProxyStore[K]) Read(ctx context.Context, id entity.Id) (e K, err error) {
 	if r.remoteRepository == nil {
-		return e, errors.New("store not loaded")
+		return e, fmt.Errorf("store not loaded")
 	}
 
 	e, err = r.localRepository.Read(ctx, id)
 	if err != nil && !errors.Is(err, entity.ErrEntityNotFound) {
-		err = errors.Wrap(err, "could not read entity")
+		err = fmt.Errorf("could not read entity: %w", err)
 		return
 	} else if err == nil {
 		return
@@ -100,10 +106,12 @@ func (r *ProxyStore[K]) Read(ctx context.Context, id entity.Id) (e K, err error)
 
 	e, err = r.remoteRepository.Read(ctx, id)
 	if err != nil && !errors.Is(err, entity.ErrEntityNotFound) {
-		err = errors.Wrap(err, "could not read entity")
+		err = fmt.Errorf("could not read entity: %w", err)
 	} else if err == nil {
 		r.localRepository.Create(ctx, e)
-		r.notifier.Notify(ctx, Loaded, e)
+		if err = r.notifier.Notify(ctx, Loaded, e); err != nil {
+			return
+		}
 	}
 
 	return
@@ -111,7 +119,7 @@ func (r *ProxyStore[K]) Read(ctx context.Context, id entity.Id) (e K, err error)
 
 func (r *ProxyStore[K]) Match(ctx context.Context, c specification.Criteria) ([]K, error) {
 	if r.remoteRepository == nil {
-		return []K{}, errors.New("store not loaded")
+		return []K{}, fmt.Errorf("store not loaded")
 	}
 
 	return r.localRepository.Match(ctx, c)
@@ -119,7 +127,7 @@ func (r *ProxyStore[K]) Match(ctx context.Context, c specification.Criteria) ([]
 
 func (r *ProxyStore[K]) MatchOne(ctx context.Context, c specification.Criteria) (K, error) {
 	if r.remoteRepository == nil {
-		return *new(K), errors.New("store not loaded")
+		return *new(K), fmt.Errorf("store not loaded")
 	}
 
 	return r.localRepository.MatchOne(ctx, c)
@@ -127,7 +135,7 @@ func (r *ProxyStore[K]) MatchOne(ctx context.Context, c specification.Criteria) 
 
 func (r *ProxyStore[K]) ReadAll(ctx context.Context) ([]K, error) {
 	if r.remoteRepository == nil {
-		return []K{}, errors.New("store not loaded")
+		return []K{}, fmt.Errorf("store not loaded")
 	}
 
 	return r.localRepository.ReadAll(ctx)
@@ -135,32 +143,36 @@ func (r *ProxyStore[K]) ReadAll(ctx context.Context) ([]K, error) {
 
 func (r *ProxyStore[K]) Update(ctx context.Context, entity K) error {
 	if r.remoteRepository == nil {
-		return errors.New("store not loaded")
+		return fmt.Errorf("store not loaded")
 	}
 
-	err := r.remoteRepository.Update(ctx, entity)
-	if err != nil {
-		return errors.Wrap(err, "could not update entity")
+	if err := r.remoteRepository.Update(ctx, entity); err != nil {
+		return fmt.Errorf("could not update entity remotely: %w", err)
 	}
-
-	r.localRepository.Update(ctx, entity)
-	r.notifier.Notify(ctx, Updated, entity)
+	if err := r.localRepository.Update(ctx, entity); err != nil {
+		return fmt.Errorf("could not update entity locally: %w", err)
+	}
+	if err := r.notifier.Notify(ctx, Updated, entity); err != nil {
+		return fmt.Errorf("could not notify entity update: %w", err)
+	}
 
 	return nil
 }
 
 func (r *ProxyStore[K]) Delete(ctx context.Context, entity K) error {
 	if r.remoteRepository == nil {
-		return errors.New("store not loaded")
+		return fmt.Errorf("store not loaded")
 	}
 
-	err := r.remoteRepository.Delete(ctx, entity)
-	if err != nil {
-		return errors.Wrap(err, "could not delete entity")
+	if err := r.remoteRepository.Delete(ctx, entity); err != nil {
+		return fmt.Errorf("could not delete entity remotely: %w", err)
 	}
-
-	r.localRepository.Delete(ctx, entity)
-	r.notifier.Notify(ctx, Deleted, entity)
+	if err := r.localRepository.Delete(ctx, entity); err != nil {
+		return fmt.Errorf("could not delete entity locally: %w", err)
+	}
+	if err := r.notifier.Notify(ctx, Deleted, entity); err != nil {
+		return fmt.Errorf("could not notify entity delete: %w", err)
+	}
 
 	return nil
 }
@@ -169,12 +181,12 @@ func (r *ProxyStore[K]) Load(ctx context.Context, repo crudo.Repository[K]) erro
 	r.remoteRepository = repo
 
 	if r.localRepository != nil {
-		return errors.New("Entities already loaded")
+		return fmt.Errorf("entities already loaded")
 	}
 
 	entities, err := r.remoteRepository.ReadAll(ctx)
 	if err != nil {
-		return errors.Wrap(err, "could not load Entities")
+		return fmt.Errorf("could not load Entities: %w", err)
 	}
 
 	r.localRepository = inmemory.NewRepository(entities)
@@ -182,7 +194,7 @@ func (r *ProxyStore[K]) Load(ctx context.Context, repo crudo.Repository[K]) erro
 		if r.Hydrate != nil {
 			d, err = r.Hydrate(ctx, d)
 			if err != nil {
-				return errors.Wrap(err, "could not hydrate entity")
+				return fmt.Errorf("could not hydrate entity: %w", err)
 			}
 		}
 
@@ -193,7 +205,7 @@ func (r *ProxyStore[K]) Load(ctx context.Context, repo crudo.Repository[K]) erro
 }
 func (r *ProxyStore[K]) Refresh(ctx context.Context) error {
 	if r.remoteRepository == nil {
-		return errors.New("store not loaded")
+		return fmt.Errorf("store not loaded")
 	}
 
 	if r.RefreshPolicy == RefreshPolicyNone {
@@ -202,19 +214,23 @@ func (r *ProxyStore[K]) Refresh(ctx context.Context) error {
 
 	remoteEntities, err := r.remoteRepository.ReadAll(ctx)
 	if err != nil {
-		return errors.Wrap(err, "could not load remote Entities")
+		return fmt.Errorf("could not load remote Entities: %w", err)
 	}
 
 	localEntities, err := r.localRepository.ReadAll(ctx)
 	if err != nil {
-		return errors.Wrap(err, "could not load local Entities")
+		return fmt.Errorf("could not load local Entities: %w", err)
 	}
 
 	if r.RefreshPolicy == RefreshPolicyReadAll || r.RefreshPolicy == RefreshPolicyReadWriteAll {
 		for _, d := range remoteEntities {
 			if !entity.Contains(localEntities, d) {
-				r.localRepository.Create(ctx, d)
-				r.notifier.Notify(ctx, Loaded, d)
+				if _, err = r.localRepository.Create(ctx, d); err != nil {
+					return err
+				}
+				if err = r.notifier.Notify(ctx, Loaded, d); err != nil {
+					return err
+				}
 			}
 		}
 	}
@@ -232,8 +248,12 @@ func (r *ProxyStore[K]) Refresh(ctx context.Context) error {
 		// unload not found
 		for _, d := range localEntities {
 			if !entity.Contains(remoteEntities, d) {
-				r.localRepository.Delete(ctx, d)
-				r.notifier.Notify(ctx, Unloaded, d)
+				if err = r.localRepository.Delete(ctx, d); err != nil {
+					return err
+				}
+				if err = r.notifier.Notify(ctx, Unloaded, d); err != nil {
+					return err
+				}
 			}
 		}
 	}

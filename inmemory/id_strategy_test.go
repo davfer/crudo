@@ -1,8 +1,9 @@
 package inmemory
 
 import (
-	"github.com/davfer/crudo/entity"
 	"testing"
+
+	"github.com/davfer/crudo/entity"
 )
 
 func TestUuidIdStrategy_Generate(t *testing.T) {

@@ -3,7 +3,7 @@ package notifier
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
+
 	"golang.org/x/exp/slices"
 )
 
@@ -26,7 +26,7 @@ func NewTopicNotifier[K any](topics []string) *TopicNotifier[K] {
 
 func (n *TopicNotifier[K]) Attach(topic string, observer Observer[K]) error {
 	if !slices.Contains(n.topics, topic) {
-		return errors.New(fmt.Sprintf("topic %s not found", topic))
+		return fmt.Errorf("topic %s not found", topic)
 	}
 
 	n.observers = append(n.observers, topicObserver[K]{
@@ -54,7 +54,7 @@ func (n *TopicNotifier[K]) Notify(ctx context.Context, topic string, event K) er
 		if o.topic == topic {
 			err = o.observer.Handle(ctx, event)
 			if err != nil {
-				err = errors.Wrap(err, "failed to handle event")
+				err = fmt.Errorf("failed to handle event: %w", err)
 			}
 		}
 	}

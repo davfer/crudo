@@ -2,12 +2,13 @@ package store
 
 import (
 	"context"
+	"reflect"
+	"testing"
+
 	"github.com/davfer/crudo"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/crudo/notifier"
 	"github.com/davfer/go-specification"
-	"reflect"
-	"testing"
 )
 
 type testProxyEntity struct {
@@ -53,8 +54,10 @@ func (s *spyRepository[K]) Start(ctx context.Context, onBootstrap func(context.C
 	return nil
 }
 
-func (s *spyRepository[K]) Create(ctx context.Context, e K) (K, error) {
-	e.SetId(entity.Id("attr1"))
+func (s *spyRepository[K]) Create(_ context.Context, e K) (K, error) {
+	if err := e.SetId("attr1"); err != nil {
+		return e, err
+	}
 	s.calls = append(s.calls, "Create")
 	s.entities = append(s.entities, e)
 	return e, nil
@@ -115,7 +118,11 @@ func TestProxyStore_Create(t *testing.T) {
 			spyRepo := &spyRepository[*testProxyEntity]{}
 
 			// load repo
-			tt.store.Load(tt.ctx, spyRepo)
+			err := tt.store.Load(tt.ctx, spyRepo)
+			if err != nil {
+				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 
 			// create entity
 			got, err := tt.store.Create(tt.ctx, tt.item)
@@ -162,10 +169,14 @@ func TestProxyStore_Delete(t *testing.T) {
 			spyRepo := &spyRepository[*testProxyEntity]{}
 
 			// load repo
-			tt.store.Load(tt.ctx, spyRepo)
+			err := tt.store.Load(tt.ctx, spyRepo)
+			if err != nil {
+				t.Errorf("Load() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
 
 			// create entity
-			err := tt.store.Delete(tt.ctx, tt.item)
+			err = tt.store.Delete(tt.ctx, tt.item)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Delete() error = %v, wantErr %v", err, tt.wantErr)
 				return

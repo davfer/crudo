@@ -2,12 +2,14 @@ package inmemory
 
 import (
 	"context"
+	"fmt"
+
+	"sync"
+
 	"github.com/davfer/archit/patterns/opts"
 	"github.com/davfer/crudo/entity"
 	"github.com/davfer/go-specification"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
-	"sync"
 )
 
 type Repository[K entity.Entity] struct {
@@ -41,7 +43,7 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 	if ee, ok := entity.Entity(e).(entity.EventfulEntity); ok {
 		err := ee.PreCreate()
 		if err != nil {
-			return e, errors.Wrap(err, "error pre creating entity")
+			return e, fmt.Errorf("error pre creating entity: %w", err)
 		}
 	}
 
@@ -50,12 +52,12 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 
 		err := e.SetId(id)
 		if err != nil {
-			return e, errors.Wrap(err, "error setting generated entity id")
+			return e, fmt.Errorf("error setting generated entity id: %w", err)
 		}
 	} else if e.GetId().IsEmpty() {
 		err := e.SetId(entity.NewIdFromString(uuid.New().String()))
 		if err != nil {
-			return e, errors.Wrap(err, "error setting entity id")
+			return e, fmt.Errorf("error setting entity id: %w", err)
 		}
 	}
 
