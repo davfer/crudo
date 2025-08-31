@@ -68,8 +68,8 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 		return e, err
 	}
 
-	id := entity.NewIdFromObjectId(insertResult.InsertedID.(primitive.ObjectID))
-	err = e.SetId(id)
+	id := NewIDFromObjectID(insertResult.InsertedID.(primitive.ObjectID))
+	err = e.SetID(id)
 	if err != nil {
 		r.logger.Error(err, "error setting id")
 		return e, err
@@ -79,7 +79,7 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 	return e, nil
 }
 
-func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error) {
+func (r *Repository[K]) Read(ctx context.Context, id entity.ID) (e K, err error) {
 	r.logger.V(5).Info("reading entity", "id", id)
 
 	err = r.Collection.FindOne(ctx, r.getMongoSearchIdentifier(id)).Decode(&e)
@@ -125,7 +125,7 @@ func (r *Repository[K]) ReadAll(ctx context.Context) ([]K, error) {
 }
 
 func (r *Repository[K]) Update(ctx context.Context, e K) error {
-	r.logger.V(5).Info("updating entity", "id", e.GetId())
+	r.logger.V(5).Info("updating entity", "id", e.GetID())
 
 	if ee, ok := entity.Entity(e).(entity.EventfulEntity); ok {
 		err := ee.PreUpdate()
@@ -135,31 +135,31 @@ func (r *Repository[K]) Update(ctx context.Context, e K) error {
 		}
 	}
 
-	_, err := r.Collection.UpdateOne(ctx, r.getMongoSearchIdentifier(e.GetId()), bson.M{"$set": e})
+	_, err := r.Collection.UpdateOne(ctx, r.getMongoSearchIdentifier(e.GetID()), bson.M{"$set": e})
 	if err != nil {
 		r.logger.Error(err, "error updating entity")
-		return fmt.Errorf("error updating entity %s: %w", e.GetId(), err)
+		return fmt.Errorf("error updating entity %s: %w", e.GetID(), err)
 	}
 
 	return nil
 }
 
 func (r *Repository[K]) Delete(ctx context.Context, entity K) error {
-	r.logger.V(5).Info("deleting entity", "id", entity.GetId())
-	_, err := r.Collection.DeleteOne(ctx, r.getMongoSearchIdentifier(entity.GetId()))
+	r.logger.V(5).Info("deleting entity", "id", entity.GetID())
+	_, err := r.Collection.DeleteOne(ctx, r.getMongoSearchIdentifier(entity.GetID()))
 	if err != nil {
 		r.logger.Error(err, "error deleting entity")
-		return fmt.Errorf("error deleting entity %s: %w", entity.GetId(), err)
+		return fmt.Errorf("error deleting entity %s: %w", entity.GetID(), err)
 	}
 
 	return nil
 }
 
-func (r *Repository[K]) getMongoSearchIdentifier(id entity.Id) bson.M {
+func (r *Repository[K]) getMongoSearchIdentifier(id entity.ID) bson.M {
 	if id.IsCompound() {
 		m := bson.M{}
-		for k, v := range id.GetCompoundIds() {
-			m[k] = v.TryObjectId()
+		for k, v := range id.GetCompoundIDs() {
+			m[k] = TryObjectID(v)
 			if m[k] == nil {
 				m[k] = v.String()
 			}
@@ -168,7 +168,7 @@ func (r *Repository[K]) getMongoSearchIdentifier(id entity.Id) bson.M {
 		return m
 	}
 
-	return bson.M{"_id": id.ToMustObjectId()}
+	return bson.M{"_id": ToMustObjectID(id)}
 }
 
 func collectionExists(ctx context.Context, col *mongo.Collection) (bool, error) {

@@ -10,11 +10,11 @@ type Policy[K entity.Entity] interface {
 	ApplyCreate(ctx context.Context, e K, col []K) ([]K, error)
 }
 
-type PolicyMru[K entity.Entity] struct {
+type PolicyMRU[K entity.Entity] struct {
 	Capacity int
 }
 
-func (p PolicyMru[K]) ApplyCreate(ctx context.Context, e K, col []K) ([]K, error) {
+func (p PolicyMRU[K]) ApplyCreate(ctx context.Context, e K, col []K) ([]K, error) {
 	if len(col) >= p.Capacity {
 		col = col[1:]
 	}
@@ -22,11 +22,11 @@ func (p PolicyMru[K]) ApplyCreate(ctx context.Context, e K, col []K) ([]K, error
 	return append(col, e), nil
 }
 
-type PolicyLru[K entity.Entity] struct {
+type PolicyLRU[K entity.Entity] struct {
 	Capacity int
 }
 
-func (p PolicyLru[K]) ApplyCreate(ctx context.Context, e K, col []K) ([]K, error) {
+func (p PolicyLRU[K]) ApplyCreate(ctx context.Context, e K, col []K) ([]K, error) {
 	if len(col) >= p.Capacity {
 		return col, nil
 	}

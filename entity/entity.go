@@ -3,8 +3,6 @@ package entity
 import (
 	"encoding/json"
 	"fmt"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var ErrEntityNotFound = fmt.Errorf("entity not found")
@@ -14,10 +12,10 @@ var ErrResourceIdNotEmpty = fmt.Errorf("resource id is not empty")
 var ErrResourceIdNotSupported = fmt.Errorf("resource id is not supported")
 
 type Entity interface {
-	GetId() Id                      // GetId should return internal identifier Id of the entity
-	SetId(Id) error                 // SetId is called when the system is assigning an Id to the entity if applies
-	GetResourceId() (string, error) // GetResourceId is an opinionated way to identify publicly an entity (slug, name, id, etc)
-	SetResourceId(string) error     // SetResourceId @deprecated is called when the system is assigning a resource id to the entity if applies
+	GetID() ID                      // GetId should return internal identifier ID of the entity
+	SetID(ID) error                 // SetId is called when the system is assigning an ID to the entity if applies
+	GetResourceID() (string, error) // GetResourceId is an opinionated way to identify publicly an entity (slug, name, id, etc)
+	SetResourceID(string) error     // SetResourceId @deprecated is called when the system is assigning a resource id to the entity if applies
 }
 
 type EventfulEntity interface {
@@ -25,39 +23,21 @@ type EventfulEntity interface {
 	PreUpdate() error // PreUpdate is called before the entity is updated
 }
 
-type Id string
+type ID string
 
-func (i Id) String() string {
+func (i ID) String() string {
 	return string(i)
 }
 
-func (i Id) IsEmpty() bool {
+func (i ID) IsEmpty() bool {
 	return i == ""
 }
 
-func (i Id) Equals(i2 Id) bool {
+func (i ID) Equals(i2 ID) bool {
 	return i.String() == i2.String()
 }
 
-func (i Id) ToMustObjectId() primitive.ObjectID {
-	id, err := primitive.ObjectIDFromHex(i.String())
-	if err != nil {
-		panic(fmt.Sprintf("could not convert %s to ObjectId", i))
-	}
-
-	return id
-}
-
-func (i Id) TryObjectId() *primitive.ObjectID {
-	id, err := primitive.ObjectIDFromHex(i.String())
-	if err != nil {
-		return nil
-	}
-
-	return &id
-}
-
-func (i Id) IsCompound() bool {
+func (i ID) IsCompound() bool {
 	// {"i":""}
 	if len(i.String()) > 8 && i.String()[0] == '{' && i.String()[len(i.String())-1] == '}' {
 		return true
@@ -66,33 +46,21 @@ func (i Id) IsCompound() bool {
 	return false
 }
 
-func (i Id) GetCompoundIds() map[string]Id {
+func (i ID) GetCompoundIDs() map[string]ID {
 	var strIds map[string]string
 	err := json.Unmarshal([]byte(i.String()), &strIds)
 	if err != nil {
 		return nil
 	}
 
-	ids := make(map[string]Id)
+	ids := make(map[string]ID)
 	for k, v := range strIds {
-		ids[k] = NewIdFromString(v)
+		ids[k] = NewIDFromString(v)
 	}
 
 	return ids
 }
 
-func NewIdFromString(id string) Id {
-	return Id(id)
-}
-func NewIdFromObjectId(id primitive.ObjectID) Id {
-	if id.IsZero() {
-		return Id("")
-	}
-	return Id(id.Hex())
-}
-
-func NewIdFromObjectIds(ids map[string]Id) Id {
-	jsoned, _ := json.Marshal(ids)
-
-	return Id(jsoned)
+func NewIDFromString(id string) ID {
+	return ID(id)
 }

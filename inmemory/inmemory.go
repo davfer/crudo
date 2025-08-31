@@ -50,12 +50,12 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 	if r.idStrategy != nil {
 		id := r.idStrategy.Generate(e)
 
-		err := e.SetId(id)
+		err := e.SetID(id)
 		if err != nil {
 			return e, fmt.Errorf("error setting generated entity id: %w", err)
 		}
-	} else if e.GetId().IsEmpty() {
-		err := e.SetId(entity.NewIdFromString(uuid.New().String()))
+	} else if e.GetID().IsEmpty() {
+		err := e.SetID(entity.NewIDFromString(uuid.New().String()))
 		if err != nil {
 			return e, fmt.Errorf("error setting entity id: %w", err)
 		}
@@ -75,12 +75,12 @@ func (r *Repository[K]) Create(ctx context.Context, e K) (K, error) {
 	return e, nil
 }
 
-func (r *Repository[K]) Read(ctx context.Context, id entity.Id) (e K, err error) {
+func (r *Repository[K]) Read(ctx context.Context, id entity.ID) (e K, err error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	for _, i := range r.Collection {
-		if i.GetId() == id {
+		if i.GetID() == id {
 			e = i
 			return
 		}
@@ -123,7 +123,7 @@ func (r *Repository[K]) Update(ctx context.Context, entity K) error {
 	defer r.lock.Unlock()
 
 	for i, e := range r.Collection {
-		if e.GetId() == entity.GetId() {
+		if e.GetID() == entity.GetID() {
 			r.Collection[i] = entity
 			break
 		}
@@ -137,7 +137,7 @@ func (r *Repository[K]) Delete(ctx context.Context, entity K) error {
 	defer r.lock.Unlock()
 
 	for i, e := range r.Collection {
-		if e.GetId() == entity.GetId() {
+		if e.GetID() == entity.GetID() {
 			r.Collection = append(r.Collection[:i], r.Collection[i+1:]...)
 			break
 		}
